@@ -58,6 +58,16 @@ python usb_protector.py
 
 > The app will auto-elevate itself via UAC. If you decline admin rights, it exits safely.
 
+### Standalone executable
+
+A prebuilt Windows executable is also available:
+
+```text
+USB-Shield.exe
+```
+
+Run it directly. It is packaged with `--windowed`, `--onefile`, `--uac-admin`, and app icon embedded.
+
 ---
 
 ## Usage

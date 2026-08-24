@@ -11,7 +11,11 @@ eggs/
 wheels/
 pip-wheel-metadata/
 *.manifest
+!USB-Shield.manifest
 *.spec
+
+# Keep the packaged executable in the repo
+!USB-Shield.exe
 
 # Virtual environments
 venv/
