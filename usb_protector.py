@@ -40,7 +40,7 @@ def get_usb_drives():
 class USBProtectorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("USB Anti-Shortcut Protector v3.1 (XDR-SAM)")
+        self.root.title("USB Anti-Shortcut Protector v3.2 (XDR-SAM)")
         self.root.geometry("550x580")
         self.root.resizable(False, False)
         self.root.configure(bg="#f8f9fa")
@@ -52,11 +52,9 @@ class USBProtectorApp:
         self.process_queue()
 
     def setup_ui(self):
-        # Header
         tk.Label(self.root, text="USB Anti-Shortcut Protector", font=("Segoe UI", 18, "bold"), bg="#f8f9fa", fg="#212529").pack(pady=(15, 5))
         tk.Label(self.root, text="Safe Format, Virus Lock & Auto Backup", font=("Segoe UI", 10), bg="#f8f9fa", fg="#6c757d").pack(pady=(0, 15))
 
-        # Drive Selection
         frame = tk.Frame(self.root, bg="#f8f9fa")
         frame.pack(pady=5)
 
@@ -67,19 +65,15 @@ class USBProtectorApp:
         ttk.Button(frame, text="Refresh", command=self.refresh_drives).grid(row=0, column=2, padx=5)
         self.refresh_drives()
 
-        # Options
         self.backup_var = tk.BooleanVar(value=True)
         tk.Checkbutton(self.root, text="Auto Backup & Restore Files (Desktop)", variable=self.backup_var, font=("Segoe UI", 10, "bold"), bg="#f8f9fa", fg="#0056b3").pack(pady=10)
 
-        # Progress Bar
         self.progress = ttk.Progressbar(self.root, orient="horizontal", length=400, mode="determinate")
         self.progress.pack(pady=10)
 
-        # Action Button
         self.protect_btn = tk.Button(self.root, text="🛡️ Format & Protect USB", font=("Segoe UI", 12, "bold"), bg="#dc3545", fg="white", activebackground="#c82333", activeforeground="white", relief=tk.FLAT, padx=10, pady=5, command=self.start_process)
         self.protect_btn.pack(pady=5)
 
-        # Log Console with Scrollbar & Wrap
         tk.Label(self.root, text="Live Process Logs:", font=("Segoe UI", 9, "bold"), bg="#f8f9fa", anchor="w").pack(fill="x", padx=40, pady=(10, 2))
         
         log_frame = tk.Frame(self.root, bg="#f8f9fa")
@@ -92,7 +86,6 @@ class USBProtectorApp:
         scrollbar.pack(side=tk.RIGHT, fill="y")
         self.log_text.config(yscrollcommand=scrollbar.set)
 
-        # Footer
         tk.Label(self.root, text="Made by XDR-SAM", font=("Courier New", 10, "bold"), bg="#f8f9fa", fg="#adb5bd").pack(side=tk.BOTTOM, pady=10)
 
     def log(self, message):
@@ -123,11 +116,9 @@ class USBProtectorApp:
 
     def run_command(self, cmd_string, success_msg, error_msg, is_robocopy=False):
         self.log(f"Executing: {cmd_string}")
-        # shell=True fixes the WinError 2 issue
         result = subprocess.run(cmd_string, shell=True, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
         
         if is_robocopy:
-            # Robocopy exit codes > 7 mean error
             if result.returncode >= 8:
                 self.log(f"ERROR: {result.stderr.strip() or result.stdout.strip()}")
                 raise Exception(error_msg)
@@ -147,10 +138,10 @@ class USBProtectorApp:
             self.progress['value'] = 0
             self.log(f"\n--- Starting process for {drive_letter} ---")
 
-            # Step 1: Backup
+            # Step 1: Backup (FIXED QUOTES AROUND DRIVE LETTER)
             if auto_backup:
                 self.log("Step 1: Backing up files safely...")
-                backup_cmd = f'robocopy "{drive_letter}\\" "{backup_dir}" /E /XD "System Volume Information" /XF *.lnk *.vbs *.bat'
+                backup_cmd = f'robocopy {drive_letter}\\ "{backup_dir}" /E /XD "System Volume Information" /XF *.lnk *.vbs *.bat'
                 self.run_command(backup_cmd, "Backup completed.", "Backup failed! Format aborted.", is_robocopy=True)
             
             self.progress['value'] = 25
@@ -170,9 +161,9 @@ class USBProtectorApp:
             self.log("Folder 'My_Files' created.")
             self.progress['value'] = 65
 
-            # Step 4: Lock Root
+            # Step 4: Lock Root (FIXED QUOTES AROUND DRIVE LETTER)
             self.log("Step 4: Locking Root Directory safely...")
-            deny_cmd = f'icacls "{drive_letter}\\" /deny "Everyone:(WD,AD)"'
+            deny_cmd = f'icacls {drive_letter}\\ /deny "Everyone:(WD,AD)"'
             self.run_command(deny_cmd, "Root locked securely.", "Failed to lock root.")
             self.progress['value'] = 75
 
