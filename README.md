@@ -1,5 +1,7 @@
 # 🛡️ USB Shield
 
+![USB Shield Banner](assets/banner.jpg)
+
 **Powered by XDR-SAM**  
 *Safe Format · Virus Lock · Auto Backup*
 
@@ -94,3 +96,8 @@ The author is not responsible for data loss.
 ## Credits
 
 Made by **XDR-SAM**
+
+## Assets
+
+- `assets/banner.jpg` – project banner  
+- `assets/usb-shield-logo.png` – app logo
