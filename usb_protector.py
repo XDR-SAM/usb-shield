@@ -40,8 +40,8 @@ def get_usb_drives():
 class USBProtectorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("USB Anti-Shortcut Protector v3 (XDR-SAM)")
-        self.root.geometry("550x550")
+        self.root.title("USB Anti-Shortcut Protector v3.1 (XDR-SAM)")
+        self.root.geometry("550x580")
         self.root.resizable(False, False)
         self.root.configure(bg="#f8f9fa")
         
@@ -79,11 +79,18 @@ class USBProtectorApp:
         self.protect_btn = tk.Button(self.root, text="🛡️ Format & Protect USB", font=("Segoe UI", 12, "bold"), bg="#dc3545", fg="white", activebackground="#c82333", activeforeground="white", relief=tk.FLAT, padx=10, pady=5, command=self.start_process)
         self.protect_btn.pack(pady=5)
 
-        # Log Console
+        # Log Console with Scrollbar & Wrap
         tk.Label(self.root, text="Live Process Logs:", font=("Segoe UI", 9, "bold"), bg="#f8f9fa", anchor="w").pack(fill="x", padx=40, pady=(10, 2))
         
-        self.log_text = tk.Text(self.root, height=8, width=58, font=("Consolas", 9), bg="#1e1e1e", fg="#00ff00", state=tk.DISABLED)
-        self.log_text.pack(pady=5)
+        log_frame = tk.Frame(self.root, bg="#f8f9fa")
+        log_frame.pack(pady=5, padx=40, fill="both", expand=True)
+
+        self.log_text = tk.Text(log_frame, height=8, font=("Consolas", 9), bg="#1e1e1e", fg="#00ff00", state=tk.DISABLED, wrap=tk.WORD)
+        self.log_text.pack(side=tk.LEFT, fill="both", expand=True)
+
+        scrollbar = ttk.Scrollbar(log_frame, command=self.log_text.yview)
+        scrollbar.pack(side=tk.RIGHT, fill="y")
+        self.log_text.config(yscrollcommand=scrollbar.set)
 
         # Footer
         tk.Label(self.root, text="Made by XDR-SAM", font=("Courier New", 10, "bold"), bg="#f8f9fa", fg="#adb5bd").pack(side=tk.BOTTOM, pady=10)
@@ -114,12 +121,21 @@ class USBProtectorApp:
             self.drive_combo.set('')
             self.log("No USB drives detected.")
 
-    def run_command(self, cmd_args, success_msg, error_msg):
-        self.log(f"Executing: {' '.join(cmd_args)}")
-        result = subprocess.run(cmd_args, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
-        if result.returncode > 7: # For robocopy >7 is error, for others != 0
-            self.log(f"ERROR: {result.stderr.strip() or result.stdout.strip()}")
-            raise Exception(error_msg)
+    def run_command(self, cmd_string, success_msg, error_msg, is_robocopy=False):
+        self.log(f"Executing: {cmd_string}")
+        # shell=True fixes the WinError 2 issue
+        result = subprocess.run(cmd_string, shell=True, capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
+        
+        if is_robocopy:
+            # Robocopy exit codes > 7 mean error
+            if result.returncode >= 8:
+                self.log(f"ERROR: {result.stderr.strip() or result.stdout.strip()}")
+                raise Exception(error_msg)
+        else:
+            if result.returncode != 0:
+                self.log(f"ERROR: {result.stderr.strip() or result.stdout.strip()}")
+                raise Exception(error_msg)
+                
         self.log(f"SUCCESS: {success_msg}")
         return result
 
@@ -133,18 +149,17 @@ class USBProtectorApp:
 
             # Step 1: Backup
             if auto_backup:
-                self.log("Step 1: Backing up files safely (No Multi-threading)...")
-                backup_cmd = ["robocopy", f"{drive_letter}\\", backup_dir, "/E", "/XD", "System Volume Information", "/XF", "*.lnk", "*.vbs", "*.bat"]
-                self.run_command(backup_cmd, "Backup completed.", "Backup failed! Format aborted.")
+                self.log("Step 1: Backing up files safely...")
+                backup_cmd = f'robocopy "{drive_letter}\\" "{backup_dir}" /E /XD "System Volume Information" /XF *.lnk *.vbs *.bat'
+                self.run_command(backup_cmd, "Backup completed.", "Backup failed! Format aborted.", is_robocopy=True)
             
             self.progress['value'] = 25
             
             # Step 2: Format
             self.log("Step 2: Quick Formatting to NTFS...")
-            format_cmd = ["format", drive_letter, "/FS:NTFS", "/Q", "/Y"]
+            format_cmd = f'format {drive_letter} /FS:NTFS /Q /Y'
             self.run_command(format_cmd, "Drive formatted to NTFS.", "Failed to format drive.")
             
-            # Hard drive settle time
             self.log("Waiting for Windows to register the new file system...")
             time.sleep(3)
             self.progress['value'] = 50
@@ -155,23 +170,23 @@ class USBProtectorApp:
             self.log("Folder 'My_Files' created.")
             self.progress['value'] = 65
 
-            # Step 4: Lock Root (FIXED: Only Deny Write Data and Append Data to prevent Access Denied)
+            # Step 4: Lock Root
             self.log("Step 4: Locking Root Directory safely...")
-            deny_cmd = ["icacls", f"{drive_letter}\\", "/deny", "Everyone:(WD,AD)"]
+            deny_cmd = f'icacls "{drive_letter}\\" /deny "Everyone:(WD,AD)"'
             self.run_command(deny_cmd, "Root locked securely.", "Failed to lock root.")
             self.progress['value'] = 75
 
             # Step 5: Grant Full Access to My_Files
             self.log("Step 5: Unlocking 'My_Files' for Full Access...")
-            grant_cmd = ["icacls", folder_path, "/grant", "Everyone:(F)", "/T"]
+            grant_cmd = f'icacls "{folder_path}" /grant "Everyone:(F)" /T'
             self.run_command(grant_cmd, "'My_Files' is now fully accessible.", "Failed to set folder permissions.")
             self.progress['value'] = 85
 
             # Step 6: Restore Files
             if auto_backup and os.path.exists(backup_dir):
                 self.log("Step 6: Restoring files to 'My_Files'...")
-                restore_cmd = ["robocopy", backup_dir, folder_path, "/E"]
-                self.run_command(restore_cmd, "Files restored successfully.", "Failed to restore files.")
+                restore_cmd = f'robocopy "{backup_dir}" "{folder_path}" /E'
+                self.run_command(restore_cmd, "Files restored successfully.", "Failed to restore files.", is_robocopy=True)
                 
                 self.log("Cleaning up Desktop backup...")
                 shutil.rmtree(backup_dir, ignore_errors=True)
