@@ -40,7 +40,7 @@ def get_usb_drives():
 class USBProtectorApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("USB Anti-Shortcut Protector v3.2 (XDR-SAM)")
+        self.root.title("USB Anti-Shortcut Protector v3.3 (XDR-SAM)")
         self.root.geometry("550x580")
         self.root.resizable(False, False)
         self.root.configure(bg="#f8f9fa")
@@ -138,7 +138,7 @@ class USBProtectorApp:
             self.progress['value'] = 0
             self.log(f"\n--- Starting process for {drive_letter} ---")
 
-            # Step 1: Backup (FIXED QUOTES AROUND DRIVE LETTER)
+            # Step 1: Backup
             if auto_backup:
                 self.log("Step 1: Backing up files safely...")
                 backup_cmd = f'robocopy {drive_letter}\\ "{backup_dir}" /E /XD "System Volume Information" /XF *.lnk *.vbs *.bat'
@@ -161,7 +161,7 @@ class USBProtectorApp:
             self.log("Folder 'My_Files' created.")
             self.progress['value'] = 65
 
-            # Step 4: Lock Root (FIXED QUOTES AROUND DRIVE LETTER)
+            # Step 4: Lock Root
             self.log("Step 4: Locking Root Directory safely...")
             deny_cmd = f'icacls {drive_letter}\\ /deny "Everyone:(WD,AD)"'
             self.run_command(deny_cmd, "Root locked securely.", "Failed to lock root.")
@@ -179,6 +179,12 @@ class USBProtectorApp:
                 restore_cmd = f'robocopy "{backup_dir}" "{folder_path}" /E'
                 self.run_command(restore_cmd, "Files restored successfully.", "Failed to restore files.", is_robocopy=True)
                 
+                # --- NEW BUG FIX STEP ---
+                self.log("Step 7: Fixing Robocopy Hidden Attribute Bug...")
+                attrib_cmd = f'attrib -h -s "{folder_path}"'
+                subprocess.run(attrib_cmd, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
+                self.log("Folder unhidden successfully.")
+
                 self.log("Cleaning up Desktop backup...")
                 shutil.rmtree(backup_dir, ignore_errors=True)
             
